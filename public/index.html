@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>División Política — API</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --accent: #6c63ff;
+    --accent2: #48cfad;
+    --danger: #ff6b6b;
+    --text: #e8eaf6;
+    --muted: #9094b0;
+    --border: #2e3250;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: center; gap: 1rem; }
+  header h1 { font-size: 1.3rem; font-weight: 700; }
+  header span { font-size: 0.75rem; background: var(--accent); color: #fff; padding: 2px 8px; border-radius: 20px; }
+
+  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
+  @media(max-width:768px){ .layout{ grid-template-columns:1fr; } }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.2rem; }
+  .card h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 1rem; }
+
+  label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 4px; }
+  input, select { width: 100%; padding: 8px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.9rem; margin-bottom: 10px; outline: none; transition: border .2s; }
+  input:focus, select:focus { border-color: var(--accent); }
+  
+  .btn { width: 100%; padding: 9px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: opacity .2s; }
+  .btn:hover { opacity: .85; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-success { background: var(--accent2); color: #fff; }
+  .btn-danger  { background: var(--danger);  color: #fff; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); margin-top: 6px; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .tab { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; font-size: 0.82rem; transition: all .2s; }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .response-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 1rem; min-height: 200px; max-height: 500px; overflow-y: auto; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 0.8rem; white-space: pre-wrap; word-break: break-all; }
+  .response-box.ok   { border-color: var(--accent2); }
+  .response-box.err  { border-color: var(--danger); }
+
+  .status { font-size: 0.78rem; margin-bottom: 6px; }
+  .status.ok  { color: var(--accent2); }
+  .status.err { color: var(--danger); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th { background: var(--surface2); color: var(--muted); padding: 8px 10px; text-align: left; font-weight: 600; }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  tr:hover td { background: var(--surface2); }
+  .flag { font-size: 1.1rem; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; }
+  .badge-am { background: #1a3a2a; color: #48cfad; }
+  .badge-eu { background: #1a2a3a; color: #74b9ff; }
+  .badge-as { background: #3a2a1a; color: #fdcb6e; }
+  .badge-af { background: #3a1a1a; color: #ff7675; }
+  .badge-oc { background: #2a1a3a; color: #a29bfe; }
+
+  .loader { display: none; color: var(--muted); font-size: 0.85rem; padding: 4px 0; }
+  .loader.show { display: block; }
+
+  .divider { height: 1px; background: var(--border); margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>🌍</div>
+  <h1>División Política</h1>
+  <span>API REST</span>
+</header>
+
+<div class="layout">
+
+  <!-- PANEL IZQUIERDO: Formulario CRUD -->
+  <div>
+    <div class="card">
+      <h2>Operaciones</h2>
+      <div class="tabs">
+        <div class="tab active" data-op="listar">GET todos</div>
+        <div class="tab" data-op="obtener">GET uno</div>
+        <div class="tab" data-op="crear">POST</div>
+        <div class="tab" data-op="actualizar">PUT</div>
+        <div class="tab" data-op="eliminar">DELETE</div>
+      </div>
+
+      <!-- Listar -->
+      <div id="op-listar">
+        <p style="font-size:.82rem;color:var(--muted);margin-bottom:10px">Lista todos los países ordenados por ID.</p>
+        <button class="btn btn-primary" onclick="listar()">Ejecutar GET /paises</button>
+      </div>
+
+      <!-- Obtener -->
+      <div id="op-obtener" style="display:none">
+        <label>ID del país</label>
+        <input type="number" id="get-id" placeholder="ej: 1" min="1">
+        <button class="btn btn-primary" onclick="obtener()">Ejecutar GET /paises/:id</button>
+      </div>
+
+      <!-- Crear -->
+      <div id="op-crear" style="display:none">
+        <label>ID (número único)</label>
+        <input type="number" id="c-id" placeholder="ej: 36">
+        <label>Nombre</label>
+        <input type="text" id="c-nombre" placeholder="ej: Portugal">
+        <label>Continente</label>
+        <select id="c-continente">
+          <option>América</option><option>Europa</option>
+          <option>Asia</option><option>África</option><option>Oceanía</option>
+        </select>
+        <label>Código Alfa2 (2 letras)</label>
+        <input type="text" id="c-alfa2" placeholder="ej: PT" maxlength="2">
+        <label>Código Alfa3 (3 letras)</label>
+        <input type="text" id="c-alfa3" placeholder="ej: PRT" maxlength="3">
+        <button class="btn btn-success" onclick="crear()">Ejecutar POST /paises</button>
+      </div>
+
+      <!-- Actualizar -->
+      <div id="op-actualizar" style="display:none">
+        <label>ID a actualizar</label>
+        <input type="number" id="u-id" placeholder="ej: 1">
+        <label>Nuevo nombre</label>
+        <input type="text" id="u-nombre" placeholder="ej: Gran Colombia">
+        <label>Continente</label>
+        <select id="u-continente">
+          <option>América</option><option>Europa</option>
+          <option>Asia</option><option>África</option><option>Oceanía</option>
+        </select>
+        <label>Código Alfa2</label>
+        <input type="text" id="u-alfa2" maxlength="2">
+        <button class="btn btn-primary" onclick="actualizar()">Ejecutar PUT /paises/:id</button>
+      </div>
+
+      <!-- Eliminar -->
+      <div id="op-eliminar" style="display:none">
+        <label>ID a eliminar</label>
+        <input type="number" id="d-id" placeholder="ej: 35">
+        <p style="font-size:.78rem;color:var(--danger);margin-bottom:10px">⚠ Esta acción es irreversible.</p>
+        <button class="btn btn-danger" onclick="eliminar()">Ejecutar DELETE /paises/:id</button>
+      </div>
+
+      <div class="divider"></div>
+      <div class="loader" id="loader">⏳ Procesando...</div>
+      <div class="status" id="status-txt"></div>
+      <div class="response-box" id="response-box">// La respuesta aparecerá aquí</div>
+      <button class="btn btn-outline" onclick="cargarTabla()">↻ Recargar tabla</button>
+    </div>
+  </div>
+
+  <!-- PANEL DERECHO: Tabla -->
+  <div>
+    <div class="card">
+      <h2>Países <span id="count" style="color:var(--accent);font-size:1rem"></span></h2>
+      <div style="overflow-x:auto">
+        <table id="tabla">
+          <thead>
+            <tr><th>#</th><th>Nombre</th><th>Continente</th><th>Alfa2</th><th>Alfa3</th></tr>
+          </thead>
+          <tbody id="tabla-body">
+            <tr><td colspan="5" style="text-align:center;color:var(--muted)">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const BASE = '/paises';
+
+const continenteBadge = c => {
+  if(c.includes('Am')) return 'badge-am';
+  if(c.includes('Eu')) return 'badge-eu';
+  if(c.includes('As')) return 'badge-as';
+  if(c.includes('fr')) return 'badge-af';
+  return 'badge-oc';
+};
+
+function showResponse(data, ok=true) {
+  const box = document.getElementById('response-box');
+  box.textContent = JSON.stringify(data, null, 2);
+  box.className = 'response-box ' + (ok ? 'ok' : 'err');
+  const s = document.getElementById('status-txt');
+  s.textContent = ok ? '✅ Éxito' : '❌ Error';
+  s.className = 'status ' + (ok ? 'ok' : 'err');
+}
+
+async function call(method, url, body=null) {
+  document.getElementById('loader').classList.add('show');
+  try {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if(body) opts.body = JSON.stringify(body);
+    const r = await fetch(url, opts);
+    const data = await r.json();
+    showResponse(data, r.ok);
+    return { ok: r.ok, data };
+  } catch(e) {
+    showResponse({ error: e.message }, false);
+    return { ok: false };
+  } finally {
+    document.getElementById('loader').classList.remove('show');
+  }
+}
+
+async function listar() {
+  const res = await call('GET', BASE);
+  if(res.ok) cargarTabla();
+}
+
+async function obtener() {
+  const id = document.getElementById('get-id').value;
+  if(!id) return alert('Ingresa un ID');
+  await call('GET', `${BASE}/${id}`);
+}
+
+async function crear() {
+  const body = {
+    id: Number(document.getElementById('c-id').value),
+    nombre: document.getElementById('c-nombre').value,
+    continente: document.getElementById('c-continente').value,
+    codigoAlfa2: document.getElementById('c-alfa2').value.toUpperCase(),
+    codigoAlfa3: document.getElementById('c-alfa3').value.toUpperCase(),
+  };
+  if(!body.id || !body.nombre || !body.codigoAlfa2) return alert('Completa los campos requeridos');
+  const res = await call('POST', BASE, body);
+  if(res.ok) cargarTabla();
+}
+
+async function actualizar() {
+  const id = document.getElementById('u-id').value;
+  if(!id) return alert('Ingresa un ID');
+  const body = {
+    nombre: document.getElementById('u-nombre').value,
+    continente: document.getElementById('u-continente').value,
+    codigoAlfa2: document.getElementById('u-alfa2').value.toUpperCase(),
+  };
+  const res = await call('PUT', `${BASE}/${id}`, body);
+  if(res.ok) cargarTabla();
+}
+
+async function eliminar() {
+  const id = document.getElementById('d-id').value;
+  if(!id) return alert('Ingresa un ID');
+  if(!confirm(`¿Eliminar país ID ${id}?`)) return;
+  const res = await call('DELETE', `${BASE}/${id}`);
+  if(res.ok) cargarTabla();
+}
+
+async function cargarTabla() {
+  try {
+    const r = await fetch(BASE);
+    const data = await r.json();
+    const tbody = document.getElementById('tabla-body');
+    document.getElementById('count').textContent = `(${data.length})`;
+    tbody.innerHTML = data.map(p => `
+      <tr>
+        <td>${p.id}</td>
+        <td>${p.nombre}</td>
+        <td><span class="badge ${continenteBadge(p.continente)}">${p.continente}</span></td>
+        <td>${p.codigoAlfa2 || ''}</td>
+        <td>${p.codigoAlfa3 || ''}</td>
+      </tr>`).join('');
+  } catch(e) {
+    document.getElementById('tabla-body').innerHTML =
+      '<tr><td colspan="5" style="color:var(--danger);text-align:center">No se pudo conectar a la API</td></tr>';
+  }
+}
+
+// Tabs
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('[id^="op-"]').forEach(x => x.style.display='none');
+    document.getElementById('op-' + t.dataset.op).style.display = '';
+  });
+});
+
+cargarTabla();
+</script>
+</body>
+</html>

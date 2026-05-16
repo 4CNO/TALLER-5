@@ -1,0 +1,35 @@
+version: '3.9'
+
+networks:
+  reddivisionpolitica:
+    name: reddivisionpolitica
+
+services:
+  mongo:
+    image: mongo:latest
+    container_name: dockerbddivisionpolitica
+    networks:
+      - reddivisionpolitica
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  api:
+    build: .
+    image: apidivisionpolitica:latest
+    container_name: dockerapidivisionpolitica
+    networks:
+      - reddivisionpolitica
+    ports:
+      - "8080:3030"
+    environment:
+      - MONGO_URI=mongodb://dockerbddivisionpolitica:27017/divisionpolitica
+      - PORT=3030
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
