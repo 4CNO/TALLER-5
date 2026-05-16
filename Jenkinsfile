@@ -2,20 +2,23 @@ pipeline {
     agent any
 
     environment {
-        REPO_URL     = 'https://github.com/4CNO/TALLER-4.git'
-        BRANCH       = 'main'
-        DOCKER_IMAGE = 'apidivisionpolitica:latest'
-        CONTAINER    = 'dockerapidivisionpolitica'
-        NETWORK      = 'reddivisionpolitica'
-        HOST_PORT    = '8080'
-        APP_PORT     = '3030'
+        REPO_URL        = 'https://github.com/4CNO/TALLER-4.git'
+        BRANCH          = 'main'
+        DOCKER_IMAGE    = 'apidivisionpolitica:latest'
+        CONTAINER       = 'dockerapidivisionpolitica'
+        NETWORK         = 'reddivisionpolitica'
+        HOST_PORT       = '8080'
+        APP_PORT        = '3030'
+        MONGO_CONTAINER = 'dockerbddivisionpolitica'
+        MONGO_HOST_PORT = '27018'
     }
 
     stages {
 
         stage('Clonar Repositorio') {
             steps {
-                git branch: "${BRANCH}", url: "${REPO_URL}"
+                // credentialsId '100' requerido para repositorios privados (rubrica Taller 5)
+                git branch: "${BRANCH}", credentialsId: '100', url: "${REPO_URL}"
             }
         }
 
@@ -63,6 +66,26 @@ pipeline {
             }
         }
 
+        stage('Verificar MongoDB') {
+            steps {
+                script {
+                    if (isUnix()) {
+                        sh """
+                            docker ps --filter name=${MONGO_CONTAINER} --filter status=running -q | grep -q . \
+                                && echo "MongoDB ya esta corriendo" \
+                                || docker run --name ${MONGO_CONTAINER} \
+                                       --network ${NETWORK} \
+                                       -p ${MONGO_HOST_PORT}:27017 -d mongo:latest
+                        """
+                    } else {
+                        bat """
+                            docker ps --filter "name=%MONGO_CONTAINER%" --filter "status=running" -q | findstr . && echo MongoDB ya esta corriendo || docker run --name %MONGO_CONTAINER% --network %NETWORK% -p %MONGO_HOST_PORT%:27017 -d mongo:latest
+                        """
+                    }
+                }
+            }
+        }
+
         stage('Desplegar Contenedor Docker') {
             steps {
                 script {
@@ -79,10 +102,10 @@ pipeline {
 
     post {
         success {
-            echo "✅ Despliegue exitoso — http://localhost:${HOST_PORT}"
+            echo "Despliegue exitoso -- http://localhost:${HOST_PORT}"
         }
         failure {
-            echo "❌ Despliegue fallido. Revisa el Console Output."
+            echo "Despliegue fallido. Revisa el Console Output."
         }
     }
 }
